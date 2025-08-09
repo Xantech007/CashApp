@@ -1,16 +1,19 @@
 <?php
 session_start();
 include('../config/dbcon.php');
+// Include the countries file for validation
+include('../users/inc/countries.php');
 
 if (isset($_POST['register'])) {
     // Sanitize and validate input data
     $name = mysqli_real_escape_string($con, $_POST['name']);
     $email = mysqli_real_escape_string($con, $_POST['email']);
     $password = mysqli_real_escape_string($con, $_POST['password']);
+    $country = mysqli_real_escape_string($con, $_POST['country']);
     $ref = isset($_POST['ref']) ? mysqli_real_escape_string($con, $_POST['ref']) : '';
 
     // Validate inputs
-    if (empty($name) || empty($email) || empty($password)) {
+    if (empty($name) || empty($email) || empty($password) || empty($country)) {
         $_SESSION['error'] = "All required fields must be filled.";
         header("Location: ../signup");
         exit(0);
@@ -19,6 +22,13 @@ if (isset($_POST['register'])) {
     // Validate email format
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $_SESSION['error'] = "Invalid email format.";
+        header("Location: ../signup");
+        exit(0);
+    }
+
+    // Validate country
+    if (!in_array($country, $countries)) {
+        $_SESSION['error'] = "Invalid country selected.";
         header("Location: ../signup");
         exit(0);
     }
@@ -43,8 +53,8 @@ if (isset($_POST['register'])) {
     $btc_wallet = ''; // Default btc_wallet
 
     // Insert user data into the database
-    $insert_query = "INSERT INTO users (name, email, password, ref, balance, image, address, btc_wallet) 
-                     VALUES ('$name', '$email', '$hashed_password', '$ref', '$balance', '$image', '$address', '$btc_wallet')";
+    $insert_query = "INSERT INTO users (name, email, password, country, ref, balance, image, address, btc_wallet, created_at) 
+                     VALUES ('$name', '$email', '$hashed_password', '$country', '$ref', '$balance', '$image', '$address', '$btc_wallet', NOW())";
     $insert_query_run = mysqli_query($con, $insert_query);
 
     if ($insert_query_run) {
@@ -62,6 +72,7 @@ if (isset($_POST['register'])) {
                 $address = $data['address'];
                 $btc_wallet = $data['btc_wallet'];
                 $ref = $data['ref'];
+                $country = $data['country']; // Include country in session
             }
 
             // Set session variables for login
@@ -74,6 +85,7 @@ if (isset($_POST['register'])) {
             $_SESSION['btc_wallet'] = $btc_wallet;
             $_SESSION['image'] = $image;
             $_SESSION['ref'] = $ref;
+            $_SESSION['country'] = $country; // Add country to session
 
             // Set success message for users/index.php
             $_SESSION['success'] = "Registration successful!";
@@ -88,6 +100,7 @@ if (isset($_POST['register'])) {
         }
     } else {
         $_SESSION['error'] = "Registration failed. Please try again.";
+        error_log("signup.php - Insert query error: " . mysqli_error($con));
         header("Location: ../signup");
         exit(0);
     }
