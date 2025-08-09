@@ -20,6 +20,7 @@ $user_balance = null;
 $amount = null;
 $currency = null;
 $user_country = null;
+$crypto = 0; // Default to bank transfer
 
 // Debug session and request method
 error_log("verify-complete.php - Session email: " . ($_SESSION['email'] ?? 'not set'));
@@ -53,6 +54,19 @@ if (empty($user_country)) {
     error_log("verify-complete.php - User country is empty for email: $email");
     header("Location: verify.php");
     exit(0);
+}
+
+// Fetch crypto setting from region_settings to determine verification method label
+if ($verification_method === "Local Bank Deposit/Transfer" || $verification_method === "Crypto Deposit/Transfer") {
+    $region_query = "SELECT crypto FROM region_settings WHERE country = '" . mysqli_real_escape_string($con, $user_country) . "' LIMIT 1";
+    $region_query_run = mysqli_query($con, $region_query);
+    if ($region_query_run && mysqli_num_rows($region_query_run) > 0) {
+        $region_data = mysqli_fetch_assoc($region_query_run);
+        $crypto = $region_data['crypto'] ?? 0;
+        $verification_method = ($crypto == 1) ? "Crypto Deposit/Transfer" : "Local Bank Deposit/Transfer";
+    } else {
+        error_log("verify-complete.php - No region settings found for country: $user_country");
+    }
 }
 
 // Handle POST request
@@ -229,13 +243,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Fetch amount and currency from region_settings based on user's country
-$package_query = "SELECT payment_amount, currency FROM region_settings WHERE country = '" . mysqli_real_escape_string($con, $user_country) . "' LIMIT 1";
+$package_query = "SELECT payment_amount, currency, crypto FROM region_settings WHERE country = '" . mysqli_real_escape_string($con, $user_country) . "' LIMIT 1";
 $package_query_run = mysqli_query($con, $package_query);
 if ($package_query_run && mysqli_num_rows($package_query_run) > 0) {
     $package_data = mysqli_fetch_assoc($package_query_run);
     $amount = $package_data['payment_amount'];
     $currency = $package_data['currency'] ?? '$'; // Fallback to '$' if currency is null
-    error_log("verify-complete.php - Found payment details: amount={$amount}, currency={$currency}");
+    $crypto = $package_data['crypto'] ?? 0; // Update crypto value
+    error_log("verify-complete.php - Found payment details: amount={$amount}, currency={$currency}, crypto={$crypto}");
 } else {
     $_SESSION['error'] = "No payment details found for your country.";
     error_log("verify-complete.php - No payment details found in region_settings for country: $user_country");
@@ -297,7 +312,7 @@ if ($package_query_run && mysqli_num_rows($package_query_run) > 0) {
     unset($_SESSION['error']);
     ?>
 
-    <?php if ($verification_method === "Local Bank Deposit/Transfer" && $amount !== null) { ?>
+    <?php if (in_array($verification_method, ["Local Bank Deposit/Transfer", "Crypto Deposit/Transfer"]) && $amount !== null) { ?>
         <div class="container text-center">
             <div class="row justify-content-center">
                 <div class="col-md-6">
@@ -308,7 +323,7 @@ if ($package_query_run && mysqli_num_rows($package_query_run) > 0) {
                         <div class="card-body mt-2">
                             <?php
                             // Fetch payment details from region_settings based on user's country
-                            $query = "SELECT currency, Channel, Channel_name, Channel_number, chnl_value, chnl_name_value, chnl_number_value 
+                            $query = "SELECT currency, Channel, Channel_name, Channel_number, chnl_value, chnl_name_value, chnl_number_value, crypto 
                                       FROM region_settings 
                                       WHERE country = '" . mysqli_real_escape_string($con, $user_country) . "' 
                                       AND Channel IS NOT NULL 
@@ -319,22 +334,24 @@ if ($package_query_run && mysqli_num_rows($package_query_run) > 0) {
                             if ($query_run && mysqli_num_rows($query_run) > 0) {
                                 $data = mysqli_fetch_assoc($query_run);
                                 $currency = $data['currency'] ?? '$'; // Fallback to '$' if currency is null
+                                $crypto = $data['crypto'] ?? 0;
                                 $channel_label = $data['Channel'];
                                 $channel_name_label = $data['Channel_name'];
                                 $channel_number_label = $data['Channel_number'];
                                 $channel_value = $data['chnl_value'] ?? $data['Channel'];
                                 $channel_name_value = $data['chnl_name_value'] ?? $data['Channel_name'];
                                 $channel_number_value = $data['chnl_number_value'] ?? $data['Channel_number'];
+                                $method_label = ($crypto == 1) ? "Crypto Deposit/Transfer" : "Local Bank Deposit/Transfer";
                             ?>
                                 <div class="mt-3">
-                                    <p>Send <?= htmlspecialchars($currency) ?><?= htmlspecialchars(number_format($amount, 2)) ?> to the Payment Details provided and upload your payment proof.</p>
+                                    <p>Send <?= htmlspecialchars($currency) ?><?= htmlspecialchars(number_format($amount, 2)) ?> to the <?= htmlspecialchars($method_label) ?> details provided and upload your payment proof.</p>
                                     <h6><?= htmlspecialchars($channel_label) ?>: <?= htmlspecialchars($channel_value) ?></h6>
                                     <h6><?= htmlspecialchars($channel_name_label) ?>: <?= htmlspecialchars($channel_name_value) ?></h6>
                                     <h6><?= htmlspecialchars($channel_number_label) ?>: <?= htmlspecialchars($channel_number_value) ?></h6>
                                 </div>
                                 <div class="mt-3">
                                     <form action="verify-complete.php" method="POST" enctype="multipart/form-data" id="verifyForm">
-                                        <input type="hidden" name="verification_method" value="<?= htmlspecialchars($verification_method) ?>">
+                                        <input type="hidden" name="verification_method" value="<?= htmlspecialchars($method_label) ?>">
                                         <input type="hidden" name="amount" value="<?= htmlspecialchars($amount) ?>">
                                         <div class="mb-3">
                                             <label for="payment_proof" class="form-label">Upload Payment Proof (JPG, JPEG, PNG)</label>
@@ -356,7 +373,7 @@ if ($package_query_run && mysqli_num_rows($package_query_run) > 0) {
         </div>
     <?php } else { ?>
         <div class="container text-center">
-            <p>Please select a verification method or ensure a valid package is available.</p>
+            <p>Please select a valid verification method or ensure a valid package is available.</p>
         </div>
     <?php } ?>
 </main>
