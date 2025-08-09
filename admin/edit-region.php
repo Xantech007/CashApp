@@ -107,44 +107,53 @@ if (mysqli_num_rows($query_run) > 0) {
                     </div>
                     <div class="col-md-6">
                         <label for="currency">Currency</label>
-                        <input type="text" class="form-control" name="currency" value="<?= htmlspecialchars($region['currency']) ?>" placeholder="e.g., NGN" required>
+                        <input type="text" class="form-control" name="currency" value="<?= htmlspecialchars($region['currency']) ?>" placeholder="e.g., NGN or USDT" required>
                     </div>
                 </div>
                 <div class="row">
+                    <div class="col-md-6">
+                        <label for="crypto">Crypto Payment</label>
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" name="crypto" id="crypto" value="1" <?= $region['crypto'] == 1 ? 'checked' : '' ?>>
+                            <label class="form-check-label" for="crypto">Enable Crypto Deposit/Transfer</label>
+                        </div>
+                    </div>
                     <div class="col-md-6">
                         <label for="Channel">Channel</label>
-                        <input type="text" class="form-control" name="Channel" value="<?= htmlspecialchars($region['Channel']) ?>" placeholder="e.g., Bank" required>
+                        <input type="text" class="form-control" name="Channel" value="<?= htmlspecialchars($region['Channel']) ?>" placeholder="e.g., Bank or Blockchain Network" required>
                     </div>
+                </div>
+                <div class="row">
                     <div class="col-md-6">
                         <label for="Channel_name">Channel Name</label>
-                        <input type="text" class="form-control" name="Channel_name" value="<?= htmlspecialchars($region['Channel_name']) ?>" placeholder="e.g., Account Name" required>
+                        <input type="text" class="form-control" name="Channel_name" value="<?= htmlspecialchars($region['Channel_name']) ?>" placeholder="e.g., Account Name or Wallet Address" required>
                     </div>
-                </div>
-                <div class="row">
                     <div class="col-md-6">
                         <label for="Channel_number">Channel Number</label>
-                        <input type="text" class="form-control" name="Channel_number" value="<?= htmlspecialchars($region['Channel_number']) ?>" placeholder="e.g., Account Number" required>
+                        <input type="text" class="form-control" name="Channel_number" value="<?= htmlspecialchars($region['Channel_number']) ?>" placeholder="e.g., Account Number or Recipient Address" required>
                     </div>
+                </div>
+                <div class="row">
                     <div class="col-md-6">
                         <label for="chnl_value">Channel Value</label>
-                        <input type="text" class="form-control" name="chnl_value" value="<?= htmlspecialchars($region['chnl_value']) ?>" placeholder="e.g., Opay">
+                        <input type="text" class="form-control" name="chnl_value" value="<?= htmlspecialchars($region['chnl_value']) ?>" placeholder="e.g., Opay or Ethereum">
                     </div>
-                </div>
-                <div class="row">
                     <div class="col-md-6">
                         <label for="chnl_name_value">Channel Name Value</label>
-                        <input type="text" class="form-control" name="chnl_name_value" value="<?= htmlspecialchars($region['chnl_name_value']) ?>" placeholder="e.g., John Doe">
-                    </div>
-                    <div class="col-md-6">
-                        <label for="chnl_number_value">Channel Number Value</label>
-                        <input type="text" class="form-control" name="chnl_number_value" value="<?= htmlspecialchars($region['chnl_number_value']) ?>" placeholder="e.g., 1234567890">
+                        <input type="text" class="form-control" name="chnl_name_value" value="<?= htmlspecialchars($region['chnl_name_value']) ?>" placeholder="e.g., John Doe or Wallet Address">
                     </div>
                 </div>
                 <div class="row">
+                    <div class="col-md-6">
+                        <label for="chnl_number_value">Channel Number Value</label>
+                        <input type="text" class="form-control" name="chnl_number_value" value="<?= htmlspecialchars($region['chnl_number_value']) ?>" placeholder="e.g., 1234567890 or 0x1234567890abcdef">
+                    </div>
                     <div class="col-md-6">
                         <label for="payment_amount">Payment Amount</label>
                         <input type="number" step="0.01" class="form-control" name="payment_amount" value="<?= htmlspecialchars($region['payment_amount']) ?>" placeholder="e.g., 100.00" required>
                     </div>
+                </div>
+                <div class="row">
                     <div class="col-md-6">
                         <label for="rate">Rate</label>
                         <input type="number" step="0.01" class="form-control" name="rate" value="<?= htmlspecialchars($region['rate']) ?>" placeholder="e.g., 1.00" required>
