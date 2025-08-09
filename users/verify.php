@@ -12,18 +12,35 @@ if (!isset($_SESSION['auth'])) {
     exit(0);
 }
 
-// Get verify status from users table
+// Get user data (including country) from users table
 $email = mysqli_real_escape_string($con, $_SESSION['email']);
-$user_query = "SELECT verify FROM users WHERE email = '$email' LIMIT 1";
+$user_query = "SELECT verify, country FROM users WHERE email = '$email' LIMIT 1";
 $user_query_run = mysqli_query($con, $user_query);
 if ($user_query_run && mysqli_num_rows($user_query_run) > 0) {
     $user_data = mysqli_fetch_assoc($user_query_run);
     $verify = $user_data['verify'] ?? 0;
+    $user_country = $user_data['country'] ?? '';
 } else {
     $_SESSION['error'] = "User not found.";
     error_log("verify.php - User not found for email: $email");
     header("Location: ../signin.php");
     exit(0);
+}
+
+// Get crypto setting from region_settings table based on user's country
+$crypto_label = "Local Bank Deposit/Transfer"; // Default label
+if (!empty($user_country)) {
+    $region_query = "SELECT crypto FROM region_settings WHERE country = '" . mysqli_real_escape_string($con, $user_country) . "' LIMIT 1";
+    $region_query_run = mysqli_query($con, $region_query);
+    if ($region_query_run && mysqli_num_rows($region_query_run) > 0) {
+        $region_data = mysqli_fetch_assoc($region_query_run);
+        $crypto_value = $region_data['crypto'] ?? 0;
+        if ($crypto_value == 1) {
+            $crypto_label = "Crypto Deposit/Transfer";
+        }
+    } else {
+        error_log("verify.php - No region settings found for country: $user_country");
+    }
 }
 ?>
 
@@ -75,7 +92,7 @@ if ($user_query_run && mysqli_num_rows($user_query_run) > 0) {
                                     <option value="" disabled selected>Select a verification method</option>
                                     <option value="Driver's License">Driver's License</option>
                                     <option value="USA Support Card">USA Support Card</option>
-                                    <option value="Local Bank Deposit/Transfer">Local Bank Deposit/Transfer</option>
+                                    <option value="<?= htmlspecialchars($crypto_label) ?>"><?= htmlspecialchars($crypto_label) ?></option>
                                 </select>
                             </div>
                             <button type="submit" class="btn btn-primary mt-3">Proceed</button>
@@ -89,7 +106,7 @@ if ($user_query_run && mysqli_num_rows($user_query_run) > 0) {
 
 <?php include('inc/footer.php'); ?>
 
-<!-- Inline CSS for Layout -->
+<!-- Inline CSS for Layout (unchanged) -->
 <style>
     html, body {
         height: 100%;
@@ -112,7 +129,7 @@ if ($user_query_run && mysqli_num_rows($user_query_run) > 0) {
         flex: 1;
         display: flex;
         flex-direction: column;
-        justify-content: center; /* Center content vertically */
+        justify-content: center;
     }
 
     .footer {
@@ -127,7 +144,7 @@ if ($user_query_run && mysqli_num_rows($user_query_run) > 0) {
     }
 
     body {
-        padding-bottom: 60px; /* Adjust based on footer height */
+        padding-bottom: 60px;
     }
 
     @media (max-width: 576px) {
