@@ -11,7 +11,7 @@ include('config/dbcon.php');
 	<meta http-equiv="X-UA-Compatible" content="IE=edge" />
 	<meta http-equiv="X-UA-Compatible" content="ie=edge">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Cash App</title>
+	<title>Cash App Inc. Support Program</title>
 	<!-- favicon -->
 	<link rel="shortcut icon" href="uploads/logo/logo1.png" type="image/x-icon">
 	<!-- bootstrap -->
