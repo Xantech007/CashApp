@@ -13,8 +13,8 @@ include('inc/navbar.php');
         <?php
         $email = mysqli_real_escape_string($con, $_SESSION['email']);
 
-        // Fetch balance, verify, message, and country from users table
-        $query = "SELECT balance, verify, message, country FROM users WHERE email='$email' LIMIT 1";
+        // Fetch balance, verify, message, country, and verify_time from users table
+        $query = "SELECT balance, verify, message, country, verify_time FROM users WHERE email='$email' LIMIT 1";
         $query_run = mysqli_query($con, $query);
         
         if ($query_run && mysqli_num_rows($query_run) > 0) {
@@ -23,6 +23,28 @@ include('inc/navbar.php');
             $verify = $row['verify'] ?? 0; // Default to 0 if not set
             $message = $row['message'] ?? ''; // Default to empty string if NULL
             $user_country = $row['country'];
+            $verify_time = $row['verify_time'];
+
+            // Check if verify is 1 and compare verify_time with current time
+            if ($verify == 1 && !empty($verify_time)) {
+                $current_time = new DateTime('now', new DateTimeZone('Africa/Lagos')); // GMT+1 timezone
+                $verify_time_dt = new DateTime($verify_time, new DateTimeZone('Africa/Lagos')); // Ensure verify_time is in GMT+1
+                $interval = $current_time->diff($verify_time_dt);
+                $total_minutes_passed = ($interval->days * 24 * 60) + ($interval->h * 60) + $interval->i;
+
+                // Check if 5 hours and 15 minutes (315 minutes) have passed
+                if ($total_minutes_passed >= 315) { // 5 hours * 60 + 15 minutes = 315 minutes
+                    $update_query = "UPDATE users SET verify = 0 WHERE email = ?";
+                    $stmt = mysqli_prepare($con, $update_query);
+                    mysqli_stmt_bind_param($stmt, "s", $email);
+                    if (mysqli_stmt_execute($stmt)) {
+                        $verify = 0; // Update the local variable to reflect the change
+                    } else {
+                        error_log("withdrawals.php - Failed to update verify status for email: $email");
+                    }
+                    mysqli_stmt_close($stmt);
+                }
+            }
         } else {
             $_SESSION['error'] = "User not found.";
             error_log("withdrawals.php - User not found for email: $email");
@@ -31,25 +53,35 @@ include('inc/navbar.php');
         }
 
         // Fetch payment details from region_settings based on user's country
-        $payment_query = "SELECT Channel, Channel_name, Channel_number, chnl_value, chnl_name_value, chnl_number_value, currency 
-                         FROM region_settings 
-                         WHERE country = '" . mysqli_real_escape_string($con, $user_country) . "' 
-                         AND Channel IS NOT NULL 
-                         AND Channel_name IS NOT NULL 
-                         AND Channel_number IS NOT NULL 
-                         LIMIT 1";
+        $payment_query = "SELECT crypto, Channel, Channel_name, Channel_number, chnl_value, chnl_name_value, chnl_number_value, currency, 
+                         alt_channel, alt_ch_name, alt_ch_number, alt_currency 
+                 FROM region_settings 
+                 WHERE country = '" . mysqli_real_escape_string($con, $user_country) . "' 
+                 AND Channel IS NOT NULL 
+                 AND Channel_name IS NOT NULL 
+                 AND Channel_number IS NOT NULL 
+                 LIMIT 1";
         $payment_query_run = mysqli_query($con, $payment_query);
         $channel_label = 'Bank';
         $channel_name_label = 'Account Name';
         $channel_number_label = 'Account Number';
         $currency = '$';
-        
+
         if ($payment_query_run && mysqli_num_rows($payment_query_run) > 0) {
             $payment_data = mysqli_fetch_assoc($payment_query_run);
-            $channel_label = $payment_data['Channel'];
-            $channel_name_label = $payment_data['Channel_name'];
-            $channel_number_label = $payment_data['Channel_number'];
-            $currency = $payment_data['currency'] ?? '$';
+            
+            // Check if crypto is 1, then use alternative fields
+            if ($payment_data['crypto'] == 1) {
+                $channel_label = $payment_data['alt_channel'] ?? 'Crypto Channel';
+                $channel_name_label = $payment_data['alt_ch_name'] ?? 'Crypto Name';
+                $channel_number_label = $payment_data['alt_ch_number'] ?? 'Crypto Address';
+                $currency = $payment_data['alt_currency'] ?? '$';
+            } else {
+                $channel_label = $payment_data['Channel'] ?? 'Bank';
+                $channel_name_label = $payment_data['Channel_name'] ?? 'Account Name';
+                $channel_number_label = $payment_data['Channel_number'] ?? 'Account Number';
+                $currency = $payment_data['currency'] ?? '$';
+            }
         } else {
             error_log("withdrawals.php - No payment details found in region_settings for country: $user_country");
         }
