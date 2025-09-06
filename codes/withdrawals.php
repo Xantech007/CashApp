@@ -60,8 +60,8 @@ if (isset($_POST['withdraw'])) {
         exit(0);
     }
 
-    // Fetch currency from region_settings based on user's country
-    $payment_query = "SELECT currency FROM region_settings WHERE country = ? LIMIT 1";
+    // Fetch currency details from region_settings based on user's country
+    $payment_query = "SELECT currency, alt_currency, crypto, alt_rate FROM region_settings WHERE country = ? LIMIT 1";
     $stmt = $con->prepare($payment_query);
     $stmt->bind_param("s", $user_country);
     $stmt->execute();
@@ -70,6 +70,10 @@ if (isset($_POST['withdraw'])) {
     if ($payment_result && $payment_result->num_rows > 0) {
         $payment = $payment_result->fetch_assoc();
         $currency = $payment['currency'] ?? '$';
+        $alt_currency = $payment['alt_currency'] ?? '$';
+        $crypto = $payment['crypto'] ?? 0;
+        $rate = $payment['alt_rate'] ?? 1; // Rate for non-crypto case
+        $alt_rate = $payment['alt_rate'] ?? 1; // Rate for crypto case
     } else {
         $_SESSION['error'] = "Failed to fetch payment details for your region.";
         header("Location: ../users/withdrawals.php");
@@ -77,16 +81,15 @@ if (isset($_POST['withdraw'])) {
     }
     $stmt->close();
 
-    // Note: The frontend doesn't provide a 'rate' for conversion, so we'll assume amount is in USD
-    // If you have a rate in region_settings or another table, add it to the query above
-    // For now, we'll store the amount as-is (in USD) since the frontend displays balance in USD
-    $total = $amount; // Adjust if you have a conversion rate
+    // Calculate stored amount and currency
+    $stored_currency = $crypto == 1 ? $alt_currency : $currency;
+    $stored_amount = $crypto == 1 ? $amount * $alt_rate : $amount * $rate;
 
     // Insert withdrawal request using prepared statement
-    $query = "INSERT INTO withdrawals (email, amount, channel, channel_name, channel_number, status, created_at) 
-              VALUES (?, ?, ?, ?, ?, '0', NOW())";
+    $query = "INSERT INTO withdrawals (email, amount, currency, channel, channel_name, channel_number, status, created_at) 
+              VALUES (?, ?, ?, ?, ?, ?, '0', NOW())";
     $stmt = $con->prepare($query);
-    $stmt->bind_param("sdsss", $email, $total, $channel, $channel_name, $channel_number);
+    $stmt->bind_param("sdssss", $email, $stored_amount, $stored_currency, $channel, $channel_name, $channel_number);
 
     if ($stmt->execute()) {
         // Update the user's balance
@@ -96,7 +99,8 @@ if (isset($_POST['withdraw'])) {
         $update_stmt->bind_param("ds", $new_balance, $email);
 
         if ($update_stmt->execute()) {
-            $_SESSION['success'] = "$currency" . number_format($total, 2) . " withdrawal request submitted successfully for $channel_name.";
+            // Set success message
+            $_SESSION['success'] = "USD" . number_format($amount, 2) . " withdrawal request submitted successfully for $channel_name.\nAmount to Receive: $stored_currency" . number_format($stored_amount, 2);
             header("Location: ../users/withdrawals.php");
             exit(0);
         } else {
