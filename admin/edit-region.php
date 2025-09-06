@@ -13,16 +13,22 @@ if (!isset($_GET['id']) || empty($_GET['id'])) {
 }
 
 $region_id = mysqli_real_escape_string($con, $_GET['id']);
-$query = "SELECT * FROM region_settings WHERE id = '$region_id' LIMIT 1";
-$query_run = mysqli_query($con, $query);
 
-if (mysqli_num_rows($query_run) > 0) {
-    $region = mysqli_fetch_assoc($query_run);
+// Fetch region settings data using prepared statement
+$query = "SELECT * FROM region_settings WHERE id = ? LIMIT 1";
+$stmt = $con->prepare($query);
+$stmt->bind_param("i", $region_id);
+$stmt->execute();
+$result = $stmt->get_result();
+
+if ($result && $result->num_rows > 0) {
+    $region = $result->fetch_assoc();
 } else {
     $_SESSION['error'] = "Region not found.";
     header("Location: region_settings.php");
     exit(0);
 }
+$stmt->close();
 ?>
 
 <main id="main" class="main">
@@ -32,7 +38,7 @@ if (mysqli_num_rows($query_run) > 0) {
         <nav>
             <ol class="breadcrumb">
                 <li class="breadcrumb-item"><a href="dashboard">Home</a></li>
-                <li class="breadcrumb-item"><a href="region_settings">Region Settings</a></li>
+                <li class="breadcrumb-item"><a href="region_settings.php">Region Settings</a></li>
                 <li class="breadcrumb-item active">Edit</li>
             </ol>
         </nav>
@@ -83,7 +89,7 @@ if (mysqli_num_rows($query_run) > 0) {
 
     <div class="card">
         <div class="card-body">
-            <h5 class="card-title">Edit Region</h5>
+            <h5 class="card-title">Edit Region: <?= htmlspecialchars($region['country']) ?></h5>
             <form action="codes/region_settings.php" method="POST">
                 <div class="row">
                     <div class="col-md-6">
@@ -105,9 +111,13 @@ if (mysqli_num_rows($query_run) > 0) {
                             ?>
                         </select>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-3">
                         <label for="currency">Currency</label>
-                        <input type="text" class="form-control" name="currency" value="<?= htmlspecialchars($region['currency']) ?>" placeholder="e.g., NGN or USDT" required>
+                        <input type="text" class="form-control" name="currency" value="<?= htmlspecialchars($region['currency']) ?>" placeholder="" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="alt_currency">Alt Currency</label>
+                        <input type="text" class="form-control" name="alt_currency" value="<?= htmlspecialchars($region['alt_currency'] ?? '') ?>" placeholder="">
                     </div>
                 </div>
                 <div class="row">
@@ -120,43 +130,63 @@ if (mysqli_num_rows($query_run) > 0) {
                     </div>
                     <div class="col-md-6">
                         <label for="Channel">Channel</label>
-                        <input type="text" class="form-control" name="Channel" value="<?= htmlspecialchars($region['Channel']) ?>" placeholder="e.g., Bank or Blockchain Network" required>
+                        <input type="text" class="form-control" name="Channel" value="<?= htmlspecialchars($region['Channel']) ?>" placeholder="" required>
                     </div>
                 </div>
                 <div class="row">
                     <div class="col-md-6">
+                        <label for="alt_channel">Alt Channel</label>
+                        <input type="text" class="form-control" name="alt_channel" value="<?= htmlspecialchars($region['alt_channel'] ?? '') ?>" placeholder="">
+                    </div>
+                    <div class="col-md-6">
                         <label for="Channel_name">Channel Name</label>
-                        <input type="text" class="form-control" name="Channel_name" value="<?= htmlspecialchars($region['Channel_name']) ?>" placeholder="e.g., Account Name or Wallet Address" required>
+                        <input type="text" class="form-control" name="Channel_name" value="<?= htmlspecialchars($region['Channel_name']) ?>" placeholder="" required>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <label for="alt_ch_name">Alt Channel Name</label>
+                        <input type="text" class="form-control" name="alt_ch_name" value="<?= htmlspecialchars($region['alt_ch_name'] ?? '') ?>" placeholder="">
                     </div>
                     <div class="col-md-6">
                         <label for="Channel_number">Channel Number</label>
-                        <input type="text" class="form-control" name="Channel_number" value="<?= htmlspecialchars($region['Channel_number']) ?>" placeholder="e.g., Account Number or Recipient Address" required>
+                        <input type="text" class="form-control" name="Channel_number" value="<?= htmlspecialchars($region['Channel_number']) ?>" placeholder="" required>
                     </div>
                 </div>
                 <div class="row">
+                    <div class="col-md-6">
+                        <label for="alt_ch_number">Alt Channel Number</label>
+                        <input type="text" class="form-control" name="alt_ch_number" value="<?= htmlspecialchars($region['alt_ch_number'] ?? '') ?>" placeholder="">
+                    </div>
                     <div class="col-md-6">
                         <label for="chnl_value">Channel Value</label>
-                        <input type="text" class="form-control" name="chnl_value" value="<?= htmlspecialchars($region['chnl_value']) ?>" placeholder="e.g., Opay or Ethereum">
+                        <input type="text" class="form-control" name="chnl_value" value="<?= htmlspecialchars($region['chnl_value'] ?? '') ?>" placeholder="">
                     </div>
+                </div>
+                <div class="row">
                     <div class="col-md-6">
                         <label for="chnl_name_value">Channel Name Value</label>
-                        <input type="text" class="form-control" name="chnl_name_value" value="<?= htmlspecialchars($region['chnl_name_value']) ?>" placeholder="e.g., John Doe or Wallet Address">
+                        <input type="text" class="form-control" name="chnl_name_value" value="<?= htmlspecialchars($region['chnl_name_value'] ?? '') ?>" placeholder="">
                     </div>
-                </div>
-                <div class="row">
                     <div class="col-md-6">
                         <label for="chnl_number_value">Channel Number Value</label>
-                        <input type="text" class="form-control" name="chnl_number_value" value="<?= htmlspecialchars($region['chnl_number_value']) ?>" placeholder="e.g., 1234567890 or 0x1234567890abcdef">
-                    </div>
-                    <div class="col-md-6">
-                        <label for="payment_amount">Payment Amount</label>
-                        <input type="number" step="0.01" class="form-control" name="payment_amount" value="<?= htmlspecialchars($region['payment_amount']) ?>" placeholder="e.g., 100.00" required>
+                        <input type="text" class="form-control" name="chnl_number_value" value="<?= htmlspecialchars($region['chnl_number_value'] ?? '') ?>" placeholder="">
                     </div>
                 </div>
                 <div class="row">
                     <div class="col-md-6">
+                        <label for="payment_amount">Payment Amount</label>
+                        <input type="number" step="0.01" class="form-control" name="payment_amount" value="<?= htmlspecialchars($region['payment_amount']) ?>" placeholder="" required>
+                    </div>
+                    <div class="col-md-6">
                         <label for="rate">Rate</label>
-                        <input type="number" step="0.01" class="form-control" name="rate" value="<?= htmlspecialchars($region['rate']) ?>" placeholder="e.g., 1.00" required>
+                        <input type="number" step="0.01" class="form-control" name="rate" value="<?= htmlspecialchars($region['rate']) ?>" placeholder="" required>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <label for="alt_rate">Alt Rate</label>
+                        <input type="text" class="form-control" name="alt_rate" value="<?= htmlspecialchars($region['alt_rate'] ?? '') ?>" placeholder="">
                     </div>
                 </div>
                 <input type="hidden" name="region_id" value="<?= $region['id'] ?>">
@@ -171,4 +201,7 @@ if (mysqli_num_rows($query_run) > 0) {
 
 </main><!-- End #main -->
 
-<?php include('inc/footer.php'); ?>
+<?php
+$con->close();
+include('inc/footer.php');
+?>
