@@ -101,9 +101,13 @@ include('inc/sidebar.php');
                                     ?>
                                 </select>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-3">
                                 <label for="currency">Currency</label>
-                                <input type="text" class="form-control" name="currency" placeholder="e.g., NGN or USDT" required>
+                                <input type="text" class="form-control" name="currency" placeholder="" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="alt_currency">Alt Currency</label>
+                                <input type="text" class="form-control" name="alt_currency" placeholder="">
                             </div>
                         </div>
                         <div class="row">
@@ -116,43 +120,63 @@ include('inc/sidebar.php');
                             </div>
                             <div class="col-md-6">
                                 <label for="Channel">Channel</label>
-                                <input type="text" class="form-control" name="Channel" placeholder="e.g., Bank or Blockchain Network" required>
+                                <input type="text" class="form-control" name="Channel" placeholder="" required>
                             </div>
                         </div>
                         <div class="row">
                             <div class="col-md-6">
+                                <label for="alt_channel">Alt Channel</label>
+                                <input type="text" class="form-control" name="alt_channel" placeholder="">
+                            </div>
+                            <div class="col-md-6">
                                 <label for="Channel_name">Channel Name</label>
-                                <input type="text" class="form-control" name="Channel_name" placeholder="e.g., Account Name or Wallet Address" required>
+                                <input type="text" class="form-control" name="Channel_name" placeholder="" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="alt_ch_name">Alt Channel Name</label>
+                                <input type="text" class="form-control" name="alt_ch_name" placeholder="">
                             </div>
                             <div class="col-md-6">
                                 <label for="Channel_number">Channel Number</label>
-                                <input type="text" class="form-control" name="Channel_number" placeholder="e.g., Account Number or Recipient Address" required>
+                                <input type="text" class="form-control" name="Channel_number" placeholder="" required>
                             </div>
                         </div>
                         <div class="row">
+                            <div class="col-md-6">
+                                <label for="alt_ch_number">Alt Channel Number</label>
+                                <input type="text" class="form-control" name="alt_ch_number" placeholder="">
+                            </div>
                             <div class="col-md-6">
                                 <label for="chnl_value">Channel Value</label>
-                                <input type="text" class="form-control" name="chnl_value" placeholder="e.g., Opay or Ethereum">
+                                <input type="text" class="form-control" name="chnl_value" placeholder="">
                             </div>
+                        </div>
+                        <div class="row">
                             <div class="col-md-6">
                                 <label for="chnl_name_value">Channel Name Value</label>
-                                <input type="text" class="form-control" name="chnl_name_value" placeholder="e.g., John Doe or Wallet Address">
+                                <input type="text" class="form-control" name="chnl_name_value" placeholder="">
                             </div>
-                        </div>
-                        <div class="row">
                             <div class="col-md-6">
                                 <label for="chnl_number_value">Channel Number Value</label>
-                                <input type="text" class="form-control" name="chnl_number_value" placeholder="e.g., 1234567890 or 0x1234567890abcdef">
-                            </div>
-                            <div class="col-md-6">
-                                <label for="payment_amount">Payment Amount</label>
-                                <input type="number" step="0.01" class="form-control" name="payment_amount" placeholder="e.g., 100.00" required>
+                                <input type="text" class="form-control" name="chnl_number_value" placeholder="">
                             </div>
                         </div>
                         <div class="row">
                             <div class="col-md-6">
+                                <label for="payment_amount">Payment Amount</label>
+                                <input type="number" step="0.01" class="form-control" name="payment_amount" placeholder="" required>
+                            </div>
+                            <div class="col-md-6">
                                 <label for="rate">Rate</label>
-                                <input type="number" step="0.01" class="form-control" name="rate" placeholder="e.g., 1.00" required>
+                                <input type="number" step="0.01" class="form-control" name="rate" placeholder="" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="alt_rate">Alt Rate</label>
+                                <input type="text" class="form-control" name="alt_rate" placeholder="">
                             </div>
                         </div>
                         <input type="hidden" name="auth_id" value="<?= $_SESSION['id'] ?>">
@@ -177,12 +201,20 @@ include('inc/sidebar.php');
                             <th scope="col">ID</th>
                             <th scope="col">Country</th>
                             <th scope="col">Currency</th>
+                            <th scope="col">Alt Currency</th>
                             <th scope="col">Crypto</th>
                             <th scope="col">Channel</th>
+                            <th scope="col">Alt Channel</th>
                             <th scope="col">Channel Name</th>
+                            <th scope="col">Alt Channel Name</th>
                             <th scope="col">Channel Number</th>
+                            <th scope="col">Alt Channel Number</th>
+                            <th scope="col">Channel Value</th>
+                            <th scope="col">Channel Name Value</th>
+                            <th scope="col">Channel Number Value</th>
                             <th scope="col">Payment Amount</th>
                             <th scope="col">Rate</th>
+                            <th scope="col">Alt Rate</th>
                             <th scope="col">Edit</th>
                             <th scope="col">Delete</th>
                         </tr>
@@ -198,14 +230,22 @@ include('inc/sidebar.php');
                                     <td><?= htmlspecialchars($data['id']) ?></td>
                                     <td><?= htmlspecialchars($data['country']) ?></td>
                                     <td><?= htmlspecialchars($data['currency']) ?></td>
+                                    <td><?= htmlspecialchars($data['alt_currency'] ?? '-') ?></td>
                                     <td><?= htmlspecialchars($data['crypto'] == 1 ? 'Yes' : 'No') ?></td>
                                     <td><?= htmlspecialchars($data['Channel']) ?></td>
+                                    <td><?= htmlspecialchars($data['alt_channel'] ?? '-') ?></td>
                                     <td><?= htmlspecialchars($data['Channel_name']) ?></td>
+                                    <td><?= htmlspecialchars($data['alt_ch_name'] ?? '-') ?></td>
                                     <td><?= htmlspecialchars($data['Channel_number']) ?></td>
+                                    <td><?= htmlspecialchars($data['alt_ch_number'] ?? '-') ?></td>
+                                    <td><?= htmlspecialchars($data['chnl_value'] ?? '-') ?></td>
+                                    <td><?= htmlspecialchars($data['chnl_name_value'] ?? '-') ?></td>
+                                    <td><?= htmlspecialchars($data['chnl_number_value'] ?? '-') ?></td>
                                     <td><?= htmlspecialchars(number_format($data['payment_amount'], 2)) ?></td>
                                     <td><?= htmlspecialchars(number_format($data['rate'], 2)) ?></td>
+                                    <td><?= htmlspecialchars($data['alt_rate'] ?? '-') ?></td>
                                     <td>
-                                        <a href="edit-region?id=<?= $data['id'] ?>" class="btn btn-light">Edit</a>
+                                        <a href="edit-region.php?id=<?= $data['id'] ?>" class="btn btn-light">Edit</a>
                                     </td>
                                     <td>
                                         <form action="codes/region_settings.php" method="POST">
@@ -217,7 +257,7 @@ include('inc/sidebar.php');
                             <?php }
                         } else { ?>
                             <tr>
-                                <td colspan="11">No region settings found.</td>
+                                <td colspan="19">No region settings found.</td>
                             </tr>
                         <?php } ?>
                     </tbody>
