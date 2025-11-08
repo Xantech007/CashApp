@@ -15,7 +15,7 @@ include('inc/sidebar.php');
                 <li class="breadcrumb-item active">Manage Users</li>
             </ol>     
         </nav>     
-    </div><!-- End Page Title -->  
+    </div>
 
     <div class="card">
         <div class="card-body">                          
@@ -40,18 +40,22 @@ include('inc/sidebar.php');
                         $query_run = mysqli_query($con, $query);
                         if (mysqli_num_rows($query_run) > 0) {
                             foreach ($query_run as $data) {
-                                // Map verify status to text, defaulting NULL or invalid to Not Verified
+                                // Map verify status to text
                                 $verify_status = match ((int)$data['verify']) {
                                     0 => 'Not Verified',
                                     1 => 'Under Review',
                                     2 => 'Verified',
-                                    default => 'Not Verified' // Handle NULL or invalid values
+                                    3 => 'Partial', // NEW: Partial status
+                                    default => 'Not Verified'
                                 };
+
+                                // Map verify status to badge color
                                 $verify_badge_class = match ((int)$data['verify']) {
                                     0, null => 'bg-danger',
                                     1 => 'bg-warning',
                                     2 => 'bg-success',
-                                    default => 'bg-danger' // Handle NULL or invalid values
+                                    3 => 'bg-purple', // NEW: Purple for Partial
+                                    default => 'bg-danger'
                                 };
                         ?>
                                 <tr>                                       
@@ -60,7 +64,8 @@ include('inc/sidebar.php');
                                     <td><?= htmlspecialchars($data['email']) ?></td>                   
                                     <td><?= htmlspecialchars($data['refered_by']) ?></td>                   
                                     <td>
-                                        <img src="../Uploads/profile-picture/<?= htmlspecialchars($data['image']) ?>" style="width:50px;height:50px" alt="Profile" class="">
+                                        <img src="../Uploads/profile-picture/<?= htmlspecialchars($data['image']) ?>" 
+                                             style="width:50px;height:50px;border-radius:50%" alt="Profile">
                                     </td>                   
                                     <td>
                                         <span class="badge <?= $verify_badge_class ?>">
@@ -71,12 +76,16 @@ include('inc/sidebar.php');
                                                 data-bs-target="#verifyModal<?= $data['id'] ?>">
                                             Change
                                         </button>
+
                                         <!-- Verification Status Modal -->
-                                        <div class="modal fade" id="verifyModal<?= $data['id'] ?>" tabindex="-1" aria-labelledby="verifyModalLabel<?= $data['id'] ?>" aria-hidden="true">
+                                        <div class="modal fade" id="verifyModal<?= $data['id'] ?>" tabindex="-1" 
+                                             aria-labelledby="verifyModalLabel<?= $data['id'] ?>" aria-hidden="true">
                                             <div class="modal-dialog modal-dialog-centered">
                                                 <div class="modal-content">
                                                     <div class="modal-header">
-                                                        <h5 class="modal-title" id="verifyModalLabel<?= $data['id'] ?>">Change Verification Status for <?= htmlspecialchars($data['name']) ?></h5>
+                                                        <h5 class="modal-title" id="verifyModalLabel<?= $data['id'] ?>">
+                                                            Change Verification Status for <?= htmlspecialchars($data['name']) ?>
+                                                        </h5>
                                                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                                     </div>
                                                     <div class="modal-body">
@@ -85,12 +94,23 @@ include('inc/sidebar.php');
                                                             <div class="form-group mb-3">
                                                                 <label for="verify_status_<?= $data['id'] ?>" class="mb-2">Verification Status</label>
                                                                 <select name="verify_status" class="form-control" id="verify_status_<?= $data['id'] ?>" required>
-                                                                    <option value="0" <?= ((int)$data['verify'] === 0 || is_null($data['verify'])) ? 'selected' : '' ?>>Not Verified</option>
-                                                                    <option value="1" <?= (int)$data['verify'] === 1 ? 'selected' : '' ?>>Under Review</option>
-                                                                    <option value="2" <?= (int)$data['verify'] === 2 ? 'selected' : '' ?>>Verified</option>
+                                                                    <option value="0" <?= ((int)$data['verify'] === 0 || is_null($data['verify'])) ? 'selected' : '' ?>>
+                                                                        Not Verified
+                                                                    </option>
+                                                                    <option value="1" <?= (int)$data['verify'] === 1 ? 'selected' : '' ?>>
+                                                                        Under Review
+                                                                    </option>
+                                                                    <option value="2" <?= (int)$data['verify'] === 2 ? 'selected' : '' ?>>
+                                                                        Verified
+                                                                    </option>
+                                                                    <option value="3" <?= (int)$data['verify'] === 3 ? 'selected' : '' ?>>
+                                                                        Partial <!-- NEW OPTION -->
+                                                                    </option>
                                                                 </select>
                                                             </div>
-                                                            <button type="submit" class="btn btn-secondary" name="update_verify_status">Save Changes</button>
+                                                            <button type="submit" class="btn btn-secondary" name="update_verify_status">
+                                                                Save Changes
+                                                            </button>
                                                         </form>
                                                     </div>
                                                 </div>
@@ -116,10 +136,17 @@ include('inc/sidebar.php');
                     </tbody>
                 </table>
             </div>
-            <!-- End Bordered Table -->
         </div>
     </div>
-</main><!-- End #main -->
+</main>
+
+<!-- Custom CSS for Purple Badge -->
+<style>
+    .bg-purple {
+        background-color: #6f42c1 !important;
+        color: white !important;
+    }
+</style>
 
 <?php include('inc/footer.php'); ?>
 </html>
