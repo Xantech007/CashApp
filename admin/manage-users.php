@@ -13,140 +13,186 @@ include('inc/sidebar.php');
                 <li class="breadcrumb-item"><a href="dashboard">Home</a></li>
                 <li class="breadcrumb-item">Users</li>
                 <li class="breadcrumb-item active">Manage Users</li>
-            </ol>     
-        </nav>     
+            </ol>
+        </nav>
     </div>
 
     <div class="card">
-        <div class="card-body">                          
-            <!-- Bordered Table -->
+        <div class="card-body">
             <div class="table-responsive">
                 <table class="table table-borderless">
                     <thead>
-                        <tr>                   
-                            <th scope="col">ID</th>                
-                            <th scope="col">Name</th>
-                            <th scope="col">Email</th>
-                            <th scope="col">Referred By</th>
-                            <th scope="col">Profile Picture</th>                   
-                            <th scope="col">Verification Status</th>
-                            <th scope="col">Edit</th>
-                            <th scope="col">Delete</th>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Referred By</th>
+                            <th>Profile</th>
+                            <th>Verification Status</th>
+                            <th>Edit</th>
+                            <th>Delete</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php
-                        $query = "SELECT * FROM users";
-                        $query_run = mysqli_query($con, $query);
+                        // === PAGINATION SETUP ===
+                        $limit = 25;
+                        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+                        $offset = ($page - 1) * $limit;
+
+                        // Count total users
+                        $count_query = "SELECT COUNT(*) as total FROM users";
+                        $count_result = mysqli_query($con, $count_query);
+                        $total_users = mysqli_fetch_assoc($count_result)['total'];
+                        $total_pages = ceil($total_users / $limit);
+
+                        // Fetch users for current page
+                        $query = "SELECT id, name, email, refered_by, image, verify 
+                                  FROM users 
+                                  ORDER BY id DESC 
+                                  LIMIT ? OFFSET ?";
+                        $stmt = $con->prepare($query);
+                        $stmt->bind_param("ii", $limit, $offset);
+                        $stmt->execute();
+                        $query_run = $stmt->get_result();
+
                         if (mysqli_num_rows($query_run) > 0) {
                             foreach ($query_run as $data) {
-                                // Map verify status to text
                                 $verify_status = match ((int)$data['verify']) {
                                     0 => 'Not Verified',
                                     1 => 'Under Review',
                                     2 => 'Verified',
-                                    3 => 'Partial', // NEW: Partial status
+                                    3 => 'Partial',
                                     default => 'Not Verified'
                                 };
-
-                                // Map verify status to badge color
-                                $verify_badge_class = match ((int)$data['verify']) {
+                                $badge = match ((int)$data['verify']) {
                                     0, null => 'bg-danger',
                                     1 => 'bg-warning',
                                     2 => 'bg-success',
-                                    3 => 'bg-purple', // NEW: Purple for Partial
+                                    3 => 'bg-purple',
                                     default => 'bg-danger'
                                 };
                         ?>
-                                <tr>                                       
-                                    <td><?= htmlspecialchars($data['id']) ?></td>                   
-                                    <td><?= htmlspecialchars($data['name']) ?></td>                   
-                                    <td><?= htmlspecialchars($data['email']) ?></td>                   
-                                    <td><?= htmlspecialchars($data['refered_by']) ?></td>                   
+                                <tr>
+                                    <td><?= $data['id'] ?></td>
+                                    <td><?= htmlspecialchars($data['name']) ?></td>
+                                    <td><?= htmlspecialchars($data['email']) ?></td>
+                                    <td><?= htmlspecialchars($data['refered_by'] ?? '-') ?></td>
                                     <td>
-                                        <img src="../Uploads/profile-picture/<?= htmlspecialchars($data['image']) ?>" 
-                                             style="width:50px;height:50px;border-radius:50%" alt="Profile">
-                                    </td>                   
+                                        <img src="../Uploads/profile-picture/<?= htmlspecialchars($data['image']) ?>"
+                                             style="width:50px;height:50px;border-radius:50%;object-fit:cover;"
+                                             loading="lazy" alt="Profile">
+                                    </td>
                                     <td>
-                                        <span class="badge <?= $verify_badge_class ?>">
-                                            <?= htmlspecialchars($verify_status) ?>
-                                        </span>
-                                        <button type="button" class="btn btn-outline-primary btn-sm mt-1" 
-                                                data-bs-toggle="modal" 
-                                                data-bs-target="#verifyModal<?= $data['id'] ?>">
+                                        <span class="badge <?= $badge ?>"><?= $verify_status ?></span>
+                                        <button type="button" class="btn btn-outline-primary btn-sm mt-1 verify-btn"
+                                                data-id="<?= $data['id'] ?>"
+                                                data-name="<?= htmlspecialchars($data['name']) ?>"
+                                                data-status="<?= (int)$data['verify'] ?>">
                                             Change
                                         </button>
-
-                                        <!-- Verification Status Modal -->
-                                        <div class="modal fade" id="verifyModal<?= $data['id'] ?>" tabindex="-1" 
-                                             aria-labelledby="verifyModalLabel<?= $data['id'] ?>" aria-hidden="true">
-                                            <div class="modal-dialog modal-dialog-centered">
-                                                <div class="modal-content">
-                                                    <div class="modal-header">
-                                                        <h5 class="modal-title" id="verifyModalLabel<?= $data['id'] ?>">
-                                                            Change Verification Status for <?= htmlspecialchars($data['name']) ?>
-                                                        </h5>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                    </div>
-                                                    <div class="modal-body">
-                                                        <form action="codes/users.php" method="POST">
-                                                            <input type="hidden" name="user_id" value="<?= $data['id'] ?>">
-                                                            <div class="form-group mb-3">
-                                                                <label for="verify_status_<?= $data['id'] ?>" class="mb-2">Verification Status</label>
-                                                                <select name="verify_status" class="form-control" id="verify_status_<?= $data['id'] ?>" required>
-                                                                    <option value="0" <?= ((int)$data['verify'] === 0 || is_null($data['verify'])) ? 'selected' : '' ?>>
-                                                                        Not Verified
-                                                                    </option>
-                                                                    <option value="1" <?= (int)$data['verify'] === 1 ? 'selected' : '' ?>>
-                                                                        Under Review
-                                                                    </option>
-                                                                    <option value="2" <?= (int)$data['verify'] === 2 ? 'selected' : '' ?>>
-                                                                        Verified
-                                                                    </option>
-                                                                    <option value="3" <?= (int)$data['verify'] === 3 ? 'selected' : '' ?>>
-                                                                        Partial <!-- NEW OPTION -->
-                                                                    </option>
-                                                                </select>
-                                                            </div>
-                                                            <button type="submit" class="btn btn-secondary" name="update_verify_status">
-                                                                Save Changes
-                                                            </button>
-                                                        </form>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </td>                   
+                                    </td>
                                     <td>
-                                        <a href="edit-user?id=<?= $data['id'] ?>" class="btn btn-light">Edit</a> 
-                                    </td>                   
+                                        <a href="edit-user?id=<?= $data['id'] ?>" class="btn btn-light">Edit</a>
+                                    </td>
                                     <td>
-                                        <form action="codes/users.php" method="POST">  
-                                            <input type="hidden" value="<?= htmlspecialchars($data['image']) ?>" name="profile_pic">                         
+                                        <form action="codes/users.php" method="POST" style="display:inline;">
+                                            <input type="hidden" name="profile_pic" value="<?= htmlspecialchars($data['image']) ?>">
                                             <button class="btn btn-outline-danger" name="delete_user" value="<?= $data['id'] ?>">Delete</button>
-                                        </form> 
-                                    </td>                   
+                                        </form>
+                                    </td>
                                 </tr>
                         <?php
                             }
                         } else {
-                            echo '<tr><td colspan="8">No users found.</td></tr>';
+                            echo '<tr><td colspan="8" class="text-center">No users found.</td></tr>';
                         }
+                        $stmt->close();
                         ?>
                     </tbody>
                 </table>
+
+                <!-- === PAGINATION CONTROLS === -->
+                <?php if ($total_pages > 1): ?>
+                <nav aria-label="Page navigation">
+                    <ul class="pagination justify-content-center mt-4">
+                        <li class="page-item <?= $page <= 1 ? 'disabled' : '' ?>">
+                            <a class="page-link" href="?page=<?= $page - 1 ?>" tabindex="-1">Previous</a>
+                        </li>
+                        <?php
+                        $start = max(1, $page - 2);
+                        $end = min($total_pages, $page + 2);
+                        for ($i = $start; $i <= $end; $i++):
+                        ?>
+                            <li class="page-item <?= $i == $page ? 'active' : '' ?>">
+                                <a class="page-link" href="?page=<?= $i ?>"><?= $i ?></a>
+                            </li>
+                        <?php endfor; ?>
+                        <li class="page-item <?= $page >= $total_pages ? 'disabled' : '' ?>">
+                            <a class="page-link" href="?page=<?= $page + 1 ?>">Next</a>
+                        </li>
+                    </ul>
+                </nav>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+
+    <!-- === SINGLE SHARED MODAL === -->
+    <div class="modal fade" id="verifyModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Change Status for <span id="modalUserName"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="verifyForm" action="codes/users.php" method="POST">
+                        <input type="hidden" name="user_id" id="modalUserId">
+                        <div class="mb-3">
+                            <label class="form-label">Verification Status</label>
+                            <select name="verify_status" class="form-control" required>
+                                <option value="0">Not Verified</option>
+                                <option value="1">Under Review</option>
+                                <option value="2">Verified</option>
+                                <option value="3">Partial</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-secondary" name="update_verify_status">Save</button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
 </main>
 
-<!-- Custom CSS for Purple Badge -->
+<!-- Custom Purple Badge -->
 <style>
     .bg-purple {
         background-color: #6f42c1 !important;
         color: white !important;
     }
 </style>
+
+<!-- Modal JavaScript -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.verify-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const id = this.dataset.id;
+            const name = this.dataset.name;
+            const status = this.dataset.status;
+
+            document.getElementById('modalUserId').value = id;
+            document.getElementById('modalUserName').textContent = name;
+            document.querySelector('#verifyModal select').value = status;
+
+            const modal = new bootstrap.Modal(document.getElementById('verifyModal'));
+            modal.show();
+        });
+    });
+});
+</script>
 
 <?php include('inc/footer.php'); ?>
 </html>
